@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  object_store:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: object_store
+    environment:
+      - OBJECT_STORE_SERVER__HOST=0.0.0.0
+      - OBJECT_STORE_SERVER__PORT=9000
+      - OBJECT_STORE_STORAGE__DATA_DIR=/var/lib/object_store/data
+      - OBJECT_STORE_METADATA__DB_PATH=/var/lib/object_store/metadata/metadata.db
+      - OBJECT_STORE_OBSERVABILITY__LOG_LEVEL=info
+      - OBJECT_STORE_OBSERVABILITY__LOG_FORMAT=json
+      - OBJECT_STORE_OBSERVABILITY__OTLP_ENDPOINT=http://otel-collector:4317
+      - OBJECT_STORE_OBSERVABILITY__METRICS_PORT=8006
+    ports:
+      - "9000:9000"
+      - "8006:8006"
+    volumes:
+      - object_data:/var/lib/object_store/data
+      - object_metadata:/var/lib/object_store/metadata
+    networks:
+      - object_store_network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import object_store; print('healthy')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  object_store_test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: object_store_test
+    environment:
+      - OBJECT_STORE_OBSERVABILITY__LOG_LEVEL=debug
+      - OBJECT_STORE_OBSERVABILITY__LOG_FORMAT=console
+    command: ["pytest", "tests/", "-v", "--tb=short"]
+    networks:
+      - object_store_network
+    profiles:
+      - test
+
+volumes:
+  object_data:
+  object_metadata:
+
+networks:
+  object_store_network:
+    driver: bridge

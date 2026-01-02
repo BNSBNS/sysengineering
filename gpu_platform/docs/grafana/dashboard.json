@@ -1,0 +1,296 @@
+{
+  "dashboard": {
+    "title": "GPU Platform Cluster Health",
+    "description": "Real-time monitoring of GPU cluster health, jobs, and alerts",
+    "tags": ["gpu", "platform", "monitoring"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "title": "Cluster GPU Status",
+        "type": "stat",
+        "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "cluster_gpus_total",
+            "legendFormat": "Total GPUs"
+          }
+        ]
+      },
+      {
+        "title": "Available GPUs",
+        "type": "stat",
+        "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "cluster_gpus_available",
+            "legendFormat": "Available"
+          }
+        ]
+      },
+      {
+        "title": "Allocated GPUs",
+        "type": "stat",
+        "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "cluster_gpus_allocated",
+            "legendFormat": "Allocated"
+          }
+        ]
+      },
+      {
+        "title": "Unhealthy GPUs",
+        "type": "stat",
+        "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "cluster_gpus_unhealthy",
+            "legendFormat": "Unhealthy"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "orange", "value": 1},
+                {"color": "red", "value": 3}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "title": "GPU Temperature Trends",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "gpu_temperature_celsius",
+            "legendFormat": "{{gpu_id}} ({{gpu_model}})"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Temperature (°C)",
+            "format": "short"
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 80,
+            "color": "yellow",
+            "op": "gt"
+          },
+          {
+            "value": 85,
+            "color": "red",
+            "op": "gt"
+          }
+        ]
+      },
+      {
+        "title": "GPU Power Consumption",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "gpu_power_watts",
+            "legendFormat": "{{gpu_id}} ({{gpu_model}})"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Power (W)",
+            "format": "short"
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 400,
+            "color": "yellow",
+            "op": "gt"
+          },
+          {
+            "value": 450,
+            "color": "red",
+            "op": "gt"
+          }
+        ]
+      },
+      {
+        "title": "GPU Utilization",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "gpu_utilization_percent",
+            "legendFormat": "{{gpu_id}} ({{gpu_model}})"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Utilization (%)",
+            "format": "percent"
+          }
+        ]
+      },
+      {
+        "title": "GPU Memory Pressure",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "gpu_memory_used_mb / gpu_memory_total_mb * 100",
+            "legendFormat": "{{gpu_id}}"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Memory Utilization (%)",
+            "format": "percent"
+          }
+        ]
+      },
+      {
+        "title": "Job Queue Status",
+        "type": "stat",
+        "gridPos": {"x": 0, "y": 20, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "jobs_pending",
+            "legendFormat": "Pending Jobs"
+          }
+        ]
+      },
+      {
+        "title": "Jobs Completed (1h)",
+        "type": "stat",
+        "gridPos": {"x": 6, "y": 20, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "increase(jobs_completed_total[1h])",
+            "legendFormat": "Completed"
+          }
+        ]
+      },
+      {
+        "title": "Job Failure Rate (1h)",
+        "type": "stat",
+        "gridPos": {"x": 12, "y": 20, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "increase(jobs_failed_total[1h])",
+            "legendFormat": "Failed"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "orange", "value": 1},
+                {"color": "red", "value": 5}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "title": "Job Execution Time",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 24, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, job_duration_seconds_bucket)",
+            "legendFormat": "p95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, job_duration_seconds_bucket)",
+            "legendFormat": "p99"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Duration (seconds)",
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "title": "Active Alerts by Severity",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 24, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "alerts_active",
+            "legendFormat": "{{alert_type}} ({{severity}})"
+          }
+        ]
+      },
+      {
+        "title": "ECC Errors Trending",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 32, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "increase(gpu_ecc_errors_correctable_total[1h])",
+            "legendFormat": "{{gpu_id}} (correctable)"
+          },
+          {
+            "expr": "increase(gpu_ecc_errors_uncorrectable_total[1h])",
+            "legendFormat": "{{gpu_id}} (uncorrectable)"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "ECC Errors",
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "title": "GPU State Distribution",
+        "type": "piechart",
+        "gridPos": {"x": 12, "y": 32, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "count by (gpu_model) (gpu_state)",
+            "legendFormat": "{{gpu_model}}"
+          }
+        ]
+      }
+    ],
+    "refresh": "5s",
+    "schemaVersion": 30,
+    "style": "dark",
+    "templating": {
+      "list": [
+        {
+          "name": "gpu_id",
+          "type": "query",
+          "datasource": "Prometheus",
+          "query": "label_values(gpu_temperature_celsius, gpu_id)",
+          "multi": true,
+          "includeAll": true
+        },
+        {
+          "name": "alert_type",
+          "type": "query",
+          "datasource": "Prometheus",
+          "query": "label_values(alerts_triggered_total, alert_type)",
+          "multi": true,
+          "includeAll": true
+        }
+      ]
+    }
+  }
+}

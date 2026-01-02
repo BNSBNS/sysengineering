@@ -1,0 +1,55 @@
+version: "3.8"
+
+services:
+  security_agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: security_agent
+    privileged: true  # Required for eBPF
+    pid: host  # Required to see host processes
+    network_mode: host  # Required to see host network
+    environment:
+      - SECURITY_OBSERVABILITY__LOG_LEVEL=info
+      - SECURITY_OBSERVABILITY__LOG_FORMAT=json
+      - SECURITY_OBSERVABILITY__OTLP_ENDPOINT=http://localhost:4317
+      - SECURITY_OBSERVABILITY__METRICS_PORT=8005
+      - SECURITY_DETECTION__ENABLE_ML_DETECTION=true
+      - SECURITY_RESPONSE__ENABLE_AUTO_RESPONSE=false
+    volumes:
+      - /sys/kernel/debug:/sys/kernel/debug:ro
+      - /sys/fs/bpf:/sys/fs/bpf
+      - /var/lib/security_agent:/var/lib/security_agent
+      - /etc/security_agent:/etc/security_agent:ro
+    cap_add:
+      - SYS_ADMIN
+      - BPF
+      - PERFMON
+      - NET_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    healthcheck:
+      test: ["CMD", "python", "-c", "import security_agent; print('healthy')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  security_agent_test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: security_agent_test
+    environment:
+      - SECURITY_OBSERVABILITY__LOG_LEVEL=debug
+      - SECURITY_OBSERVABILITY__LOG_FORMAT=console
+      - SECURITY_EBPF__ENABLE_SYSCALL_TRACING=false
+      - SECURITY_EBPF__ENABLE_NETWORK_TRACING=false
+      - SECURITY_EBPF__ENABLE_FILE_TRACING=false
+    command: ["pytest", "tests/", "-v", "--tb=short", "-m", "not ebpf"]
+    profiles:
+      - test
+
+networks:
+  default:
+    driver: bridge

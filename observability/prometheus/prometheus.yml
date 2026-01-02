@@ -1,0 +1,63 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+rule_files: []
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # OpenTelemetry Collector metrics
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets: ['otel-collector:8888']
+
+  # Project A: Database Engine
+  - job_name: 'db_engine'
+    static_configs:
+      - targets: ['host.docker.internal:8001']
+    metrics_path: /metrics
+
+  # Project B: Container Runtime
+  - job_name: 'container_runtime'
+    static_configs:
+      - targets: ['host.docker.internal:8002']
+    metrics_path: /metrics
+
+  # Project C: Secure Platform
+  - job_name: 'secure_platform'
+    static_configs:
+      - targets: ['host.docker.internal:8003']
+    metrics_path: /metrics
+
+  # Project D: GPU Platform
+  - job_name: 'gpu_platform'
+    static_configs:
+      - targets: ['host.docker.internal:8004']
+    metrics_path: /metrics
+
+  # Project E: Streaming System
+  - job_name: 'streaming_system'
+    static_configs:
+      - targets: ['host.docker.internal:8005']
+    metrics_path: /metrics
+
+  # Project F: Security Agent
+  - job_name: 'security_agent'
+    static_configs:
+      - targets: ['host.docker.internal:8006']
+    metrics_path: /metrics
+
+  # Project G: Object Store
+  - job_name: 'object_store'
+    static_configs:
+      - targets: ['host.docker.internal:8007']
+    metrics_path: /metrics

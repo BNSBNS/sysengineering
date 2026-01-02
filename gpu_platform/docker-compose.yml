@@ -1,0 +1,49 @@
+version: "3.8"
+
+services:
+  gpu_platform:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gpu_platform
+    environment:
+      - GPU_PLATFORM_OBSERVABILITY__LOG_LEVEL=info
+      - GPU_PLATFORM_OBSERVABILITY__LOG_FORMAT=json
+      - GPU_PLATFORM_OBSERVABILITY__OTLP_ENDPOINT=http://otel-collector:4317
+      - GPU_PLATFORM_OBSERVABILITY__METRICS_PORT=8003
+    ports:
+      - "8003:8003"
+      - "50053:50053"
+    networks:
+      - gpu_network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import gpu_platform; print('healthy')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  gpu_platform_test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gpu_platform_test
+    environment:
+      - GPU_PLATFORM_OBSERVABILITY__LOG_LEVEL=debug
+      - GPU_PLATFORM_OBSERVABILITY__LOG_FORMAT=console
+    command: ["pytest", "tests/", "-v", "--tb=short"]
+    networks:
+      - gpu_network
+    profiles:
+      - test
+
+networks:
+  gpu_network:
+    driver: bridge

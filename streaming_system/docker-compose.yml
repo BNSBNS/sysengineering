@@ -1,0 +1,101 @@
+version: "3.8"
+
+services:
+  broker1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: streaming_broker1
+    environment:
+      - STREAMING_BROKER__BROKER_ID=1
+      - STREAMING_BROKER__HOST=broker1
+      - STREAMING_BROKER__PORT=9092
+      - STREAMING_BROKER__RAFT_PORT=9093
+      - STREAMING_STORAGE__DATA_DIR=/var/lib/streaming/data
+      - STREAMING_STORAGE__LOG_DIR=/var/lib/streaming/logs
+      - STREAMING_OBSERVABILITY__LOG_LEVEL=info
+      - STREAMING_OBSERVABILITY__LOG_FORMAT=json
+      - STREAMING_OBSERVABILITY__OTLP_ENDPOINT=http://otel-collector:4317
+      - STREAMING_OBSERVABILITY__METRICS_PORT=8004
+    ports:
+      - "9092:9092"
+      - "8004:8004"
+    volumes:
+      - broker1_data:/var/lib/streaming/data
+      - broker1_logs:/var/lib/streaming/logs
+    networks:
+      - streaming_network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import streaming_system; print('healthy')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  broker2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: streaming_broker2
+    environment:
+      - STREAMING_BROKER__BROKER_ID=2
+      - STREAMING_BROKER__HOST=broker2
+      - STREAMING_BROKER__PORT=9092
+      - STREAMING_BROKER__RAFT_PORT=9093
+      - STREAMING_STORAGE__DATA_DIR=/var/lib/streaming/data
+      - STREAMING_STORAGE__LOG_DIR=/var/lib/streaming/logs
+      - STREAMING_OBSERVABILITY__LOG_LEVEL=info
+      - STREAMING_OBSERVABILITY__LOG_FORMAT=json
+      - STREAMING_OBSERVABILITY__OTLP_ENDPOINT=http://otel-collector:4317
+    volumes:
+      - broker2_data:/var/lib/streaming/data
+      - broker2_logs:/var/lib/streaming/logs
+    networks:
+      - streaming_network
+
+  broker3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: streaming_broker3
+    environment:
+      - STREAMING_BROKER__BROKER_ID=3
+      - STREAMING_BROKER__HOST=broker3
+      - STREAMING_BROKER__PORT=9092
+      - STREAMING_BROKER__RAFT_PORT=9093
+      - STREAMING_STORAGE__DATA_DIR=/var/lib/streaming/data
+      - STREAMING_STORAGE__LOG_DIR=/var/lib/streaming/logs
+      - STREAMING_OBSERVABILITY__LOG_LEVEL=info
+      - STREAMING_OBSERVABILITY__LOG_FORMAT=json
+      - STREAMING_OBSERVABILITY__OTLP_ENDPOINT=http://otel-collector:4317
+    volumes:
+      - broker3_data:/var/lib/streaming/data
+      - broker3_logs:/var/lib/streaming/logs
+    networks:
+      - streaming_network
+
+  streaming_test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: streaming_test
+    environment:
+      - STREAMING_OBSERVABILITY__LOG_LEVEL=debug
+      - STREAMING_OBSERVABILITY__LOG_FORMAT=console
+    command: ["pytest", "tests/", "-v", "--tb=short"]
+    networks:
+      - streaming_network
+    profiles:
+      - test
+
+volumes:
+  broker1_data:
+  broker1_logs:
+  broker2_data:
+  broker2_logs:
+  broker3_data:
+  broker3_logs:
+
+networks:
+  streaming_network:
+    driver: bridge

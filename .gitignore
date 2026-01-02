@@ -1,0 +1,10 @@
+*.egg-info/
+*.pyc
+__pycache__/
+**/**/__pycache__/
+.env
+.vscode/
+.idea/
+.DS_Store
+**/*.egg-info/
+.claude

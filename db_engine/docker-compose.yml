@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  db_engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: db_engine
+    ports:
+      - "5432:5432"   # PostgreSQL-compatible protocol
+      - "8001:8001"   # Prometheus metrics
+      - "50051:50051" # gRPC API
+    volumes:
+      - db_data:/data
+      - db_wal:/wal
+      - ./src:/app/src:ro  # Mount source for development
+    environment:
+      - DB_ENGINE_DATA_DIR=/data
+      - DB_ENGINE_WAL_DIR=/wal
+      - DB_ENGINE_LOG_LEVEL=INFO
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=db_engine
+    networks:
+      - db_network
+    restart: unless-stopped
+
+  # Test container for running tests
+  db_engine_test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: db_engine_test
+    volumes:
+      - ./src:/app/src
+      - ./tests:/app/tests
+    environment:
+      - DB_ENGINE_DATA_DIR=/tmp/data
+      - DB_ENGINE_WAL_DIR=/tmp/wal
+      - PYTHONPATH=/app/src
+    command: ["pytest", "-v", "--tb=short"]
+    profiles:
+      - test
+
+networks:
+  db_network:
+    driver: bridge
+
+volumes:
+  db_data:
+  db_wal:
