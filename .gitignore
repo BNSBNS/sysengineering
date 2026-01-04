@@ -8,3 +8,6 @@ __pycache__/
 .DS_Store
 **/*.egg-info/
 .claude
+.pytest_cache/
+**/.pytest_cache/
+nul
