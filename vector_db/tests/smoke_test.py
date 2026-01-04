@@ -2,7 +2,7 @@
 
 import numpy as np
 
-# Test all imports work
+# Test all imports work - Domain layer
 from vector_db.domain.value_objects import VectorId, DistanceMetric, SearchResult
 from vector_db.domain.entities import Vector, VectorWithDistance
 from vector_db.domain.services import (
@@ -13,6 +13,17 @@ from vector_db.domain.services import (
     compute_recall, compute_ground_truth
 )
 from vector_db.infrastructure.config import Config, get_config
+
+# Test Application layer imports
+from vector_db.application import VectorDatabase, IndexType
+
+# Test Ports layer imports
+from vector_db.ports.inbound import VectorDatabasePort
+from vector_db.ports.outbound import VectorStoragePort
+
+# Test Adapters layer imports
+from vector_db.adapters.inbound import create_app
+from vector_db.adapters.outbound import FileVectorStorage, InMemoryVectorStorage
 
 
 def test_hnsw():
@@ -92,12 +103,108 @@ def test_value_objects():
     print('Value objects: PASSED')
 
 
+def test_vector_database():
+    """Test VectorDatabase application service."""
+    print('\n=== Testing VectorDatabase Application ===')
+    np.random.seed(42)
+
+    # Test HNSW-based database
+    db = VectorDatabase(dim=32, index_type=IndexType.HNSW)
+    for i in range(50):
+        db.insert(f'v{i}', np.random.randn(32).astype(np.float32))
+
+    results = db.search(np.random.randn(32).astype(np.float32), k=5)
+    print(f'VectorDatabase (HNSW): {len(db)} vectors, search returned {len(results)} results')
+    assert len(db) == 50
+    assert len(results) == 5
+
+    # Test get and contains
+    assert db.contains('v0')
+    vec = db.get('v0')
+    assert vec is not None
+
+    # Test stats
+    stats = db.stats()
+    assert stats['dim'] == 32
+    assert stats['index_type'] == 'hnsw'
+
+    print('VectorDatabase: PASSED')
+
+
+def test_storage_adapters():
+    """Test storage adapters."""
+    print('\n=== Testing Storage Adapters ===')
+    import tempfile
+
+    # Test InMemoryVectorStorage
+    mem_storage = InMemoryVectorStorage()
+    vec = np.array([1.0, 2.0, 3.0], dtype=np.float32)
+    mem_storage.save_vector('test', vec)
+    loaded = mem_storage.load_vector('test')
+    assert loaded is not None
+    assert np.allclose(vec, loaded)
+    print('InMemoryVectorStorage: PASSED')
+
+    # Test FileVectorStorage
+    with tempfile.TemporaryDirectory() as tmpdir:
+        file_storage = FileVectorStorage(tmpdir)
+        file_storage.save_vector('test', vec)
+        loaded = file_storage.load_vector('test')
+        assert loaded is not None
+        assert np.allclose(vec, loaded)
+        assert 'test' in file_storage.list_vectors()
+        file_storage.delete_vector('test')
+        assert file_storage.load_vector('test') is None
+    print('FileVectorStorage: PASSED')
+
+
+def test_rest_api():
+    """Test REST API adapter."""
+    print('\n=== Testing REST API Adapter ===')
+    from fastapi.testclient import TestClient
+
+    db = VectorDatabase(dim=4, index_type=IndexType.HNSW)
+    app = create_app(db)
+    client = TestClient(app)
+
+    # Test health endpoint
+    response = client.get('/health')
+    assert response.status_code == 200
+    assert response.json()['status'] == 'healthy'
+
+    # Test insert
+    response = client.post('/vectors', json={'id': 'v1', 'vector': [1.0, 2.0, 3.0, 4.0]})
+    assert response.status_code == 200
+    assert response.json()['success'] is True
+
+    # Test search
+    response = client.post('/search', json={'vector': [1.0, 2.0, 3.0, 4.0], 'k': 1})
+    assert response.status_code == 200
+    assert len(response.json()['results']) == 1
+    assert response.json()['results'][0]['id'] == 'v1'
+
+    # Test get
+    response = client.get('/vectors/v1')
+    assert response.status_code == 200
+    assert response.json()['id'] == 'v1'
+
+    # Test stats
+    response = client.get('/stats')
+    assert response.status_code == 200
+    assert response.json()['num_vectors'] == 1
+
+    print('REST API: PASSED')
+
+
 if __name__ == '__main__':
     test_value_objects()
     test_distance_functions()
     test_hnsw()
     test_ivf()
     test_pq()
+    test_vector_database()
+    test_storage_adapters()
+    test_rest_api()
     print('\n' + '='*50)
     print('=== ALL SMOKE TESTS PASSED! ===')
     print('='*50)
